@@ -19,6 +19,8 @@ const videoEl = document.getElementById("video");
 
 let cooldown = false;
 let resetTimer = null;
+let noDetectTimer = null;
+let framesSinceDetect = 0;
 
 function showResult(text, type) {
   resultEl.textContent = text;
@@ -28,7 +30,14 @@ function showResult(text, type) {
     resultEl.className = "";
     resultEl.textContent = "";
     cooldown = false;
+    framesSinceDetect = 0;
+    showHint("Hold strekkoden i bildet");
   }, 2500);
+}
+
+function showHint(text) {
+  resultEl.textContent = text;
+  resultEl.className = "visible hint";
 }
 
 if (!("BarcodeDetector" in window)) {
@@ -44,25 +53,63 @@ if (!("BarcodeDetector" in window)) {
   }).then(stream => {
     videoEl.srcObject = stream;
     videoEl.play();
+    showHint("Hold strekkoden i bildet");
     scan();
   });
+
+  let consecutiveDetects = 0;
+  let pendingCode = null;
 
   async function scan() {
     if (videoEl.readyState === videoEl.HAVE_ENOUGH_DATA) {
       if (!cooldown) {
         try {
           const barcodes = await detector.detect(videoEl);
-          if (barcodes.length > 0) {
-            cooldown = true;
-            const code = barcodes[0].rawValue;
-            resultEl.className = "visible";
-            resultEl.textContent = "Sjekker...";
 
-            const docSnap = await getDoc(doc(db, "students", code));
-            if (docSnap.exists()) {
-              showResult("✓ Funnet: " + code, "found");
+          if (barcodes.length > 0) {
+            const code = barcodes[0].rawValue;
+            framesSinceDetect = 0;
+
+            if (code === pendingCode) {
+              consecutiveDetects++;
             } else {
-              showResult("✗ Ikke funnet: " + code, "notfound");
+              pendingCode = code;
+              consecutiveDetects = 1;
+            }
+
+            // require 3 consistent reads before accepting
+            if (consecutiveDetects === 3) {
+              cooldown = true;
+              showHint("Skanner...");
+
+              setTimeout(async () => {
+                try {
+                  const docSnap = await getDoc(doc(db, "students", code));
+                  if (docSnap.exists()) {
+                    showResult("✓ Funnet: " + code, "found");
+                  } else {
+                    showResult("✗ Ikke funnet: " + code, "notfound");
+                  }
+                } catch (e) {
+                  showResult("Feil: " + e.message, "notfound");
+                }
+              }, 600);
+            } else {
+              showHint("Skanner...");
+            }
+
+          } else {
+            consecutiveDetects = 0;
+            pendingCode = null;
+            framesSinceDetect++;
+
+            // give hints based on how long since we last saw a barcode
+            if (framesSinceDetect > 60) {
+              showHint("Ingen strekkode funnet – prøv å juster avstanden");
+            } else if (framesSinceDetect > 30) {
+              showHint("Hold strekkoden stødig i bildet");
+            } else {
+              showHint("Hold strekkoden i bildet");
             }
           }
         } catch (e) {
