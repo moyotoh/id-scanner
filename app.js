@@ -2,9 +2,13 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/fireba
 import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
+    apiKey: "AIzaSyDW-HsndyJlo-A9wsD6nVk0NcLJbTPj9_A",
+  authDomain: "tore-barcode.firebaseapp.com",
+  projectId: "tore-barcode",
+  storageBucket: "tore-barcode.firebasestorage.app",
+  messagingSenderId: "238997857731",
+  appId: "1:238997857731:web:41ead174e0b5a49eecc976",
+  key: "AIzaSyDne70MvbSQfyrl95nFU-UjBslJcWDCsQY"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -28,7 +32,16 @@ function showResult(text, type) {
   }, 2500);
 }
 
-const codeReader = new ZXing.BrowserMultiFormatReader();
+const hints = new Map();
+hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
+  ZXing.BarcodeFormat.CODE_128,
+  ZXing.BarcodeFormat.CODE_39,
+  ZXing.BarcodeFormat.PDF_417,
+  ZXing.BarcodeFormat.QR_CODE,
+]);
+
+const codeReader = new ZXing.BrowserMultiFormatReader(hints);
 
 codeReader.decodeFromVideoDevice(null, videoEl, async (result, err) => {
   if (!result || cooldown) return;
