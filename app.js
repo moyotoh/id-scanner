@@ -15,6 +15,7 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 const resultEl = document.getElementById("result");
+const videoEl = document.getElementById("video");
 
 let cooldown = false;
 let resetTimer = null;
@@ -22,7 +23,6 @@ let resetTimer = null;
 function showResult(text, type) {
   resultEl.textContent = text;
   resultEl.className = "visible " + type;
-
   if (resetTimer) clearTimeout(resetTimer);
   resetTimer = setTimeout(() => {
     resultEl.className = "";
@@ -31,40 +31,45 @@ function showResult(text, type) {
   }, 2500);
 }
 
-const html5QrCode = new Html5Qrcode("reader");
+if (!("BarcodeDetector" in window)) {
+  resultEl.textContent = "Nettleseren støtter ikke skanning";
+  resultEl.className = "visible notfound";
+} else {
+  const detector = new BarcodeDetector({
+    formats: ["code_128", "code_39", "pdf417", "qr_code"]
+  });
 
-html5QrCode.start(
-  { facingMode: "environment" },
-  {
-    fps: 15,
-    qrbox: { width: 280, height: 120 },
-    formatsToSupport: [
-      Html5QrcodeSupportedFormats.CODE_128,
-      Html5QrcodeSupportedFormats.CODE_39,
-      Html5QrcodeSupportedFormats.PDF_417,
-      Html5QrcodeSupportedFormats.QR_CODE,
-    ],
-    experimentalFeatures: { useBarCodeDetectorIfSupported: true },
-  },
-  async (code) => {
-    if (cooldown) return;
-    cooldown = true;
+  navigator.mediaDevices.getUserMedia({
+    video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } }
+  }).then(stream => {
+    videoEl.srcObject = stream;
+    videoEl.play();
+    scan();
+  });
 
-    resultEl.className = "visible";
-    resultEl.textContent = "Sjekker...";
+  async function scan() {
+    if (videoEl.readyState === videoEl.HAVE_ENOUGH_DATA) {
+      if (!cooldown) {
+        try {
+          const barcodes = await detector.detect(videoEl);
+          if (barcodes.length > 0) {
+            cooldown = true;
+            const code = barcodes[0].rawValue;
+            resultEl.className = "visible";
+            resultEl.textContent = "Sjekker...";
 
-    try {
-      const docRef = doc(db, "students", code);
-      const docSnap = await getDoc(docRef);
-
-      if (docSnap.exists()) {
-        showResult("✓ Funnet: " + code, "found");
-      } else {
-        showResult("✗ Ikke funnet: " + code, "notfound");
+            const docSnap = await getDoc(doc(db, "students", code));
+            if (docSnap.exists()) {
+              showResult("✓ Funnet: " + code, "found");
+            } else {
+              showResult("✗ Ikke funnet: " + code, "notfound");
+            }
+          }
+        } catch (e) {
+          // ignore frame errors
+        }
       }
-    } catch (e) {
-      showResult("Feil: " + e.message, "notfound");
     }
-  },
-  () => {}
-);
+    requestAnimationFrame(scan);
+  }
+}
