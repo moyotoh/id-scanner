@@ -1,21 +1,17 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="no">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Student ID Scanner</title>
+  <title>ID-skanner</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div id="app">
-    <h1>ID Scanner</h1>
-    <div id="scanner-container">
-      <video id="video" autoplay muted playsinline></video>
-      <div id="overlay"></div>
-    </div>
+  <div id="scanner-container">
+    <video id="video" autoplay muted playsinline></video>
+    <div id="overlay"></div>
     <div id="result"></div>
   </div>
-
   <script src="https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js"></script>
   <script type="module" src="app.js"></script>
 </body>

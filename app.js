@@ -2,13 +2,9 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/fireba
 import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
-    apiKey: "AIzaSyDW-HsndyJlo-A9wsD6nVk0NcLJbTPj9_A",
-  authDomain: "tore-barcode.firebaseapp.com",
-  projectId: "tore-barcode",
-  storageBucket: "tore-barcode.firebasestorage.app",
-  messagingSenderId: "238997857731",
-  appId: "1:238997857731:web:41ead174e0b5a49eecc976",
-  key: "AIzaSyDne70MvbSQfyrl95nFU-UjBslJcWDCsQY"
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
 };
 
 const app = initializeApp(firebaseConfig);
@@ -17,44 +13,41 @@ const db = getFirestore(app);
 const resultEl = document.getElementById("result");
 const videoEl = document.getElementById("video");
 
-let lastScanned = null;
 let cooldown = false;
+let resetTimer = null;
+
+function showResult(text, type) {
+  resultEl.textContent = text;
+  resultEl.className = "visible " + type;
+
+  if (resetTimer) clearTimeout(resetTimer);
+  resetTimer = setTimeout(() => {
+    resultEl.className = "";
+    resultEl.textContent = "";
+    cooldown = false;
+  }, 2500);
+}
 
 const codeReader = new ZXing.BrowserMultiFormatReader();
 
 codeReader.decodeFromVideoDevice(null, videoEl, async (result, err) => {
   if (!result || cooldown) return;
+  cooldown = true;
 
   const code = result.getText();
-  if (code === lastScanned) return;
-
-  lastScanned = code;
-  cooldown = true;
-  setTimeout(() => { cooldown = false; lastScanned = null; }, 3000);
-
-  resultEl.className = "";
-  resultEl.textContent = "Checking...";
+  resultEl.className = "visible";
+  resultEl.textContent = "Sjekker...";
 
   try {
     const docRef = doc(db, "students", code);
     const docSnap = await getDoc(docRef);
 
     if (docSnap.exists()) {
-      resultEl.textContent = "✓ Found";
-      resultEl.className = "found";
+      showResult("✓ Funnet: " + code, "found");
     } else {
-      resultEl.textContent = "✗ Not found";
-      resultEl.className = "notfound";
+      showResult("✗ Ikke funnet: " + code, "notfound");
     }
   } catch (e) {
-    resultEl.textContent = "Error: " + e.message;
+    showResult("Feil: " + e.message, "notfound");
   }
 });
-
-if (docSnap.exists()) {
-  resultEl.textContent = "✓ Found: " + code;
-  resultEl.className = "found";
-} else {
-  resultEl.textContent = "✗ Not found: " + code;
-  resultEl.className = "notfound";
-}
