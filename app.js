@@ -40,7 +40,7 @@ if (!("BarcodeDetector" in window)) {
   });
 
   navigator.mediaDevices.getUserMedia({
-    video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } }
+    video: { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } }
   }).then(stream => {
     videoEl.srcObject = stream;
     videoEl.play();
