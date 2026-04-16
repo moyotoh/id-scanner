@@ -24,7 +24,6 @@ body {
   object-fit: cover !important;
 }
 
-/* hide the default html5-qrcode UI chrome */
 #reader img,
 #reader button,
 #reader select,

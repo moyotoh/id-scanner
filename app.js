@@ -1,5 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, doc, getDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyDW-HsndyJlo-A9wsD6nVk0NcLJbTPj9_A",
@@ -19,7 +20,6 @@ const videoEl = document.getElementById("video");
 
 let cooldown = false;
 let resetTimer = null;
-let noDetectTimer = null;
 let framesSinceDetect = 0;
 
 function showResult(text, type) {
@@ -55,6 +55,9 @@ if (!("BarcodeDetector" in window)) {
     videoEl.play();
     showHint("Hold strekkoden i bildet");
     scan();
+  }).catch(err => {
+    resultEl.textContent = "Kamerafeil: " + err.message;
+    resultEl.className = "visible notfound";
   });
 
   let consecutiveDetects = 0;
@@ -77,7 +80,6 @@ if (!("BarcodeDetector" in window)) {
               consecutiveDetects = 1;
             }
 
-            // require 3 consistent reads before accepting
             if (consecutiveDetects === 3) {
               cooldown = true;
               showHint("Skanner...");
@@ -86,6 +88,7 @@ if (!("BarcodeDetector" in window)) {
                 try {
                   const docSnap = await getDoc(doc(db, "students", code));
                   if (docSnap.exists()) {
+                    await deleteDoc(doc(db, "students", code));
                     showResult("✓ Funnet: " + code, "found");
                   } else {
                     showResult("✗ Ikke funnet: " + code, "notfound");
@@ -103,7 +106,6 @@ if (!("BarcodeDetector" in window)) {
             pendingCode = null;
             framesSinceDetect++;
 
-            // give hints based on how long since we last saw a barcode
             if (framesSinceDetect > 60) {
               showHint("Ingen strekkode funnet – prøv å juster avstanden");
             } else if (framesSinceDetect > 30) {
