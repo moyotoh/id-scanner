@@ -50,3 +50,11 @@ codeReader.decodeFromVideoDevice(null, videoEl, async (result, err) => {
     resultEl.textContent = "Error: " + e.message;
   }
 });
+
+if (docSnap.exists()) {
+  resultEl.textContent = "✓ Found: " + code;
+  resultEl.className = "found";
+} else {
+  resultEl.textContent = "✗ Not found: " + code;
+  resultEl.className = "notfound";
+}
