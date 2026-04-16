@@ -15,7 +15,6 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 const resultEl = document.getElementById("result");
-const videoEl = document.getElementById("video");
 
 let cooldown = false;
 let resetTimer = null;
@@ -32,35 +31,40 @@ function showResult(text, type) {
   }, 2500);
 }
 
-const hints = new Map();
-hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
-hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
-  ZXing.BarcodeFormat.CODE_128,
-  ZXing.BarcodeFormat.CODE_39,
-  ZXing.BarcodeFormat.PDF_417,
-  ZXing.BarcodeFormat.QR_CODE,
-]);
+const html5QrCode = new Html5Qrcode("reader");
 
-const codeReader = new ZXing.BrowserMultiFormatReader(hints);
+html5QrCode.start(
+  { facingMode: "environment" },
+  {
+    fps: 15,
+    qrbox: { width: 280, height: 120 },
+    formatsToSupport: [
+      Html5QrcodeSupportedFormats.CODE_128,
+      Html5QrcodeSupportedFormats.CODE_39,
+      Html5QrcodeSupportedFormats.PDF_417,
+      Html5QrcodeSupportedFormats.QR_CODE,
+    ],
+    experimentalFeatures: { useBarCodeDetectorIfSupported: true },
+  },
+  async (code) => {
+    if (cooldown) return;
+    cooldown = true;
 
-codeReader.decodeFromVideoDevice(null, videoEl, async (result, err) => {
-  if (!result || cooldown) return;
-  cooldown = true;
+    resultEl.className = "visible";
+    resultEl.textContent = "Sjekker...";
 
-  const code = result.getText();
-  resultEl.className = "visible";
-  resultEl.textContent = "Sjekker...";
+    try {
+      const docRef = doc(db, "students", code);
+      const docSnap = await getDoc(docRef);
 
-  try {
-    const docRef = doc(db, "students", code);
-    const docSnap = await getDoc(docRef);
-
-    if (docSnap.exists()) {
-      showResult("✓ Funnet: " + code, "found");
-    } else {
-      showResult("✗ Ikke funnet: " + code, "notfound");
+      if (docSnap.exists()) {
+        showResult("✓ Funnet: " + code, "found");
+      } else {
+        showResult("✗ Ikke funnet: " + code, "notfound");
+      }
+    } catch (e) {
+      showResult("Feil: " + e.message, "notfound");
     }
-  } catch (e) {
-    showResult("Feil: " + e.message, "notfound");
-  }
-});
+  },
+  () => {}
+);

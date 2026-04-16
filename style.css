@@ -13,22 +13,23 @@ body {
   height: 100%;
 }
 
-#video {
+#reader {
   width: 100%;
   height: 100%;
-  object-fit: cover;
 }
 
-#overlay {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -60%);
-  width: 70%;
-  height: 20%;
-  border: 2px solid rgba(255,255,255,0.7);
-  border-radius: 8px;
-  box-shadow: 0 0 0 9999px rgba(0,0,0,0.45);
+#reader video {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+}
+
+/* hide the default html5-qrcode UI chrome */
+#reader img,
+#reader button,
+#reader select,
+#qr-shaded-region + div {
+  display: none !important;
 }
 
 #result {
@@ -44,6 +45,7 @@ body {
   color: white;
   opacity: 0;
   transition: opacity 0.2s;
+  pointer-events: none;
 }
 
 #result.visible { opacity: 1; }
